@@ -1,0 +1,114 @@
+# frozen_string_literal: true
+
+require 'fileutils'
+require 'json'
+require 'time'
+
+module Elspy
+  class Recipe
+    attr_reader :name, :version, :install_dir
+
+    def initialize(name, &)
+      @name = name
+
+      @install_dir = File.join(DOWNLOADS_DIR, name)
+
+      @download_block = nil
+      @run_block = nil
+      @binary_path = nil
+
+      instance_eval(&) if block_given?
+    end
+
+    def download(version: :latest, &block)
+      @version = version
+      @download_block = block
+    end
+
+    def binary(path)
+      @binary_path = path
+    end
+
+    def binary_path
+      File.join(@install_dir, @binary_path)
+    end
+
+    def run(&block)
+      @run_block = block
+    end
+
+    def exec_download(version: :latest)
+      @version = version
+      instance_exec(version:, &@download_block)
+    end
+
+    def exec_run(*args)
+      instance_exec(*args, &@run_block)
+    end
+
+    def remove
+      return unless Dir.exist?(@install_dir)
+
+      FileUtils.rm_rf(@install_dir)
+      puts "Removed: #{@install_dir}"
+    end
+
+    def gem_install(gem_name, version = :latest)
+      FileUtils.mkdir_p(@install_dir)
+
+      gem_version = version == :latest ? [] : ['-v', version.to_s]
+
+      system(
+        'gem', 'install', gem_name,
+        *gem_version,
+        '--install-dir', @install_dir,
+        '--bindir', File.join(@install_dir, 'bin'),
+        '--no-document',
+        exception: true
+      )
+
+      # get the actual version
+      version = if version == :latest
+                  require 'rubygems'
+
+                  specs_dir = File.join(@install_dir, 'specifications')
+                  gemspec_files = Dir.glob(File.join(specs_dir, "#{gem_name}-*.gemspec"))
+
+                  if gemspec_files.any?
+                    spec = Gem::Specification.load(gemspec_files.first)
+                    spec.version.to_s
+                  else
+                    'unknown'
+                  end
+                else
+                  version.to_s
+                end
+
+      save_metadata(version:)
+    end
+
+    def save_metadata(version:, **extra)
+      metadata = {
+        name: @name,
+        version: version,
+        installed_at: Time.now.iso8601
+      }.merge(extra)
+
+      File.write(metadata_path, JSON.pretty_generate(metadata))
+    end
+
+    def load_metadata
+      return nil unless File.exist?(metadata_path)
+
+      JSON.parse(File.read(metadata_path), symbolize_names: true)
+    end
+
+    def metadata_path
+      File.join(@install_dir, '.medatada.json')
+    end
+  end
+
+  def self.recipe(name, &)
+    Recipe.new(name, &)
+  end
+end
