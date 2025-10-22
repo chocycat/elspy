@@ -13,11 +13,8 @@ Also, why not?
 
 ## Installation
 
-For now, clone the repository and add it to your path:
 ```bash
-git clone https://github.com/chocycat/elspy.git
-cd elspy
-echo 'export PATH="$PATH:'$(pwd)'/bin"' >> ~/.bashrc # or ~/.zshrc
+gem install elspy
 ```
 
 ## Usage
