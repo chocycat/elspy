@@ -118,6 +118,42 @@ module Elspy
       save_metadata(version:)
     end
 
+    def node_install(package, version = :latest, package_manager: nil)
+      FileUtils.mkdir_p(@install_dir)
+
+      package_manager ||= node_pm
+      package_arg = version == :latest ? package : "#{package}@#{version}"
+
+      Dir.chdir(@install_dir) do
+        case package_manager
+        when :pnpm
+          system('pnpm', 'add', package_arg, exception: true)
+        when :npm
+          system('npm', 'install', package_arg, '--no-save', '--prefix', '.', exception: true)
+        end
+      end
+
+      version = if version == :latest
+                  package_json = File.join(@install_dir, 'node_modules', package, 'package.json')
+                  if File.exist?(package_json)
+                    JSON.parse(File.read(package_json))['version']
+                  else
+                    'unknown'
+                  end
+                else
+                  version.to_s
+                end
+
+      save_metadata(version:)
+    end
+
+    def node_pm
+      return :pnpm if command_exists? 'pnpm'
+      return :npm if command_exists? 'npm'
+
+      raise Error, 'npm or pnpm is not in PATH'
+    end
+
     def command_exists?(cmd)
       system("which #{cmd} > /dev/null 2>&1")
     end
