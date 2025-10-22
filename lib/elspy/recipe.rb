@@ -38,16 +38,34 @@ module Elspy
       @run_block = block
     end
 
-    def depends_on(*commands)
-      @dependencies.concat(commands)
+    def depends_on(*commands, any: nil, all: nil)
+      @dependencies << { type: :any, commands: Array(any) } if any
+      @dependencies << { type: :all, commands: Array(all) } if all
+
+      return unless commands.any?
+
+      @dependencies << { type: :all, commands: }
     end
 
     def check_dependencies!
-      missing = @dependencies.reject { |cmd| command_exists?(cmd) }
-      return if missing.empty?
+      @dependencies.each do |dep|
+        case dep[:type]
+        when :all
+          missing = dep[:commands].reject { |cmd| command_exists?(cmd) }
+          unless missing.empty?
 
-      raise Error, "Missing required dependencies: #{missing.join(', ')}\n" \
-                   'Please install them before continuing.'
+            raise Error, "Missing required dependencies: #{missing.join(', ')}\n" \
+                         'Please install them to continue.'
+          end
+        when :any
+          found = dep[:commands].any? { |cmd| command_exists?(cmd) }
+          unless found
+
+            raise Error, "Missing dependencies: need at least one of [#{dep[:commands].join(', ')}]\n" \
+                         'Please install one of them to continue.'
+          end
+        end
+      end
     end
 
     def exec_download(version: :latest)
