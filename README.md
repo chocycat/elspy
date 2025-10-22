@@ -66,6 +66,8 @@ Bundled ones are available in the repository, check the `recipes/` directory for
 
 ```rb
 Elspy.recipe 'solargraph' do
+  depends_on 'gem'
+
   binary 'bin/solargraph'
 
   download do |version: :latest|

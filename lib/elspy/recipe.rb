@@ -10,6 +10,7 @@ module Elspy
 
     def initialize(name, &)
       @name = name
+      @dependencies = []
 
       @install_dir = File.join(DOWNLOADS_DIR, name)
 
@@ -35,6 +36,18 @@ module Elspy
 
     def run(&block)
       @run_block = block
+    end
+
+    def depends_on(*commands)
+      @dependencies.concat(commands)
+    end
+
+    def check_dependencies!
+      missing = @dependencies.reject { |cmd| command_exists?(cmd) }
+      return if missing.empty?
+
+      raise Error, "Missing required dependencies: #{missing.join(', ')}\n" \
+                   'Please install them before continuing.'
     end
 
     def exec_download(version: :latest)
@@ -85,6 +98,10 @@ module Elspy
                 end
 
       save_metadata(version:)
+    end
+
+    def command_exists?(cmd)
+      system("which #{cmd} > /dev/null 2>&1")
     end
 
     def save_metadata(version:, **extra)

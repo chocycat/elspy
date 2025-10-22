@@ -10,11 +10,13 @@ module Elspy
 
     def install(recipe_name, version: :latest)
       recipe = load_recipe recipe_name
+      recipe.check_dependencies!
       recipe.exec_download(version:)
     end
 
     def update(recipe_name)
       recipe = load_recipe recipe_name
+      recipe.check_dependencies!
       recipe.exec_download(version: :latest)
     end
 

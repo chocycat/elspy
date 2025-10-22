@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 Elspy.recipe 'solargraph' do
+  depends_on 'gem'
+
   binary 'bin/solargraph'
 
   download do |version: :latest|
