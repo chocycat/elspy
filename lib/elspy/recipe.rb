@@ -53,14 +53,12 @@ module Elspy
         when :all
           missing = dep[:commands].reject { |cmd| command_exists?(cmd) }
           unless missing.empty?
-
             raise Error, "Missing required dependencies: #{missing.join(', ')}\n" \
                          'Please install them to continue.'
           end
         when :any
           found = dep[:commands].any? { |cmd| command_exists?(cmd) }
           unless found
-
             raise Error, "Missing dependencies: need at least one of [#{dep[:commands].join(', ')}]\n" \
                          'Please install one of them to continue.'
           end
@@ -98,7 +96,6 @@ module Elspy
         exception: true
       )
 
-      # get the actual version
       version = if version == :latest
                   require 'rubygems'
 
