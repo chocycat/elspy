@@ -3,6 +3,8 @@
 require 'fileutils'
 require 'json'
 require 'time'
+require 'net/http'
+require 'uri'
 
 module Elspy
   class Recipe
@@ -142,6 +144,37 @@ module Elspy
                 end
 
       save_metadata(version:)
+    end
+
+    def http_download(url, destination = nil, max_redirects: 8)
+      raise Error, 'Too many redirects' if max_redirects <= 0
+
+      uri = URI.parse(url)
+      destination ||= File.join(@install_dir, File.basename(uri.path))
+
+      FileUtils.mkdir_p(File.dirname(destination))
+
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == 'https') do |http|
+        request = Net::HTTP::Get.new(uri)
+
+        http.request(request) do |response|
+          case response
+          when Net::HTTPSuccess
+            File.open(destination, 'wb') do |file|
+              response.read_body do |chunk|
+                file.write(chunk)
+              end
+            end
+          when Net::HTTPRedirection
+            redirect_url = response['location']
+            return http_download(redirect_url, destination, max_redirects: max_redirects - 1)
+          else
+            raise Error, "Download failed: #{response.code} #{response.message}"
+          end
+        end
+      end
+
+      destination
     end
 
     def node_pm
