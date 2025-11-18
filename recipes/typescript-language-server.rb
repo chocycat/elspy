@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-Elspy.recipe 'typescript_language_server' do
+Elspy.recipe 'typescript-language-server' do
   depends_on any: %w[npm pnpm]
 
   binary 'node_modules/.bin/typescript-language-server'
