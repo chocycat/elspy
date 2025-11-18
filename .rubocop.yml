@@ -15,3 +15,7 @@ Metrics/BlockLength:
 
 Layout/LineLength:
   Max: 120
+
+Naming/FileName:
+  Exclude:
+    - 'recipes/*'
